@@ -98,14 +98,12 @@ ggplot(train, aes(ï..Age, colour = Attrition)) +
               
 #visual 2
 c <- ggplot(train, aes(x=JobSatisfaction, fill=Attrition, color=Attrition)) +
-             geom_histogram(binwidth = 1) + labs(title="Job SatisfactionDistribution by Attrition")
-c + theme_bw()
+             geom_histogram(binwidth = 1) + labs(title="Job SatisfactionDistribution by Attrition") + theme_bw()
 
 
 #visual 3
 P <- ggplot(train, aes(x=EnvironmentSatisfaction, fill=Attrition, color=Attrition)) +
-             geom_histogram(binwidth = 1) + labs(title="Enviorment Satisfaction Distribution by Attrition")
-P + theme_bw()
+             geom_histogram(binwidth = 1) + labs(title="Enviorment Satisfaction Distribution by Attrition") + theme_bw()
 
 #visual 4
 ggplot(train, aes(YearsAtCompany, colour = Attrition)) +

@@ -1,0 +1,204 @@
+---
+title: "MLProject2"
+author: "Carl Thomas"
+date: "6/13/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(caret)
+library(ggplot2)
+library(tidyverse)
+library(caretEnsemble)
+library(psych)
+library(GGally)
+library(e1071)
+library(rpart)
+library(randomForest)
+library(ROSE)
+
+
+ssh <- suppressPackageStartupMessages
+```
+
+
+```{r,  include=FALSE}
+data <- read.csv("C:/Users/CThom/Desktop/Machine Learning1/Employee_Data_Class_Project.csv", stringsAsFactors = TRUE)
+```
+
+## R Markdown
+
+```{r pressure, echo=FALSE}
+#Studying the structure of the data
+str(data)
+head(data)
+summary(data)
+
+```
+```{r pressure, echo=FALSE}
+
+#1. Data Partition: Split data into training and test data sets
+indxTrain <- createDataPartition(y = data$Attrition,p = 0.75,list = FALSE)
+train <- data[indxTrain,]
+test <- data[-indxTrain,]
+
+#Check dimensions of the split
+prop.table(table(data$Attrition)) * 100
+prop.table(table(train$Attrition)) * 100
+prop.table(table(test$Attrition)) * 100
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+#2. Data cleaning
+#visualize the missing data for the training data
+library(Amelia)
+library(Rcpp)
+library(mice)
+
+missmap(train)
+
+#Take out variables with little information 
+
+train<-train[, -c(6, 12)]
+test <-test[, -c(6, 12)]
+
+#Use mice package to predict missing values
+impute_train <- mice(train, m = 1, seed = 1111)
+train <- complete(impute_train,1)
+impute_test <- mice(test, m = 1, seed = 1111)
+test <- complete(impute_test,1)
+
+#Check missing values again
+missmap(train)
+missmap(test)  
+
+```
+
+
+
+
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+
+#3. Exploratory data analysis
+#Data Visualization
+#Visual 1
+ggplot(train, aes(ï..Age, colour = Attrition)) +
+              geom_freqpoly(binwidth = 1) + labs(title="Age Distribution by Attrition")
+              
+#visual 2
+c <- ggplot(train, aes(x=JobSatisfaction, fill=Attrition, color=Attrition)) +
+             geom_histogram(binwidth = 1) + labs(title="Job SatisfactionDistribution by Attrition")
+c + theme_bw()
+
+
+#visual 3
+P <- ggplot(train, aes(x=EnvironmentSatisfaction, fill=Attrition, color=Attrition)) +
+             geom_histogram(binwidth = 1) + labs(title="Enviorment Satisfaction Distribution by Attrition")
+P + theme_bw()
+
+#visual 4
+ggplot(train, aes(YearsAtCompany, colour = Attrition)) +
+            geom_freqpoly(binwidth = 1) + labs(title="Years At Company  Distribution by Attrition")
+
+
+```
+
+
+```{r pressure, echo=FALSE}
+
+#4. MODELING BUILDING
+#For comparing the outcome of the training and testing phase let's create separate variables that store the value of the response variable:
+#create objects x which holds the predictor variables and y which holds the response variables
+
+x = train[,-2]
+y = train$Attrition
+
+summary(train$Attrition)
+                           
+model = train(x,y,method='nb',trControl=trainControl(method='cv',number=10))
+model
+
+#Oversampling
+set.seed(1111)
+train2 <- ovun.sample(Attrition ~ ., data = train, method = "over", N = 3500)$data
+
+x2 = train2[,-2]
+y2= train2$Attrition
+summary(train2$Attrition)
+
+model2 = train(x2,y2,method='nb',trControl=trainControl(method='cv',number=10))
+model2
+
+```
+
+
+```{r pressure, echo=FALSE}
+#5. MODEL EVALUATION
+#Predict testing set
+Predict <- predict(model, newdata = test)
+
+#Get the confusion matrix to see accuracy value and other parameter values
+mat<-confusionMatrix(Predict, test$Attrition, positive="Yes")
+mat
+
+str(test$Attrition)
+
+#OverSample
+
+Predict2 <- predict(model2, newdata = test)
+
+#Get the confusion matrix to see accuracy value and other parameter values
+mat2<-confusionMatrix(Predict2, test$Attrition, positive="Yes")
+mat2
+
+
+
+```
+
+
+
+```{r pressure, echo=FALSE}
+                          
+#Plot Variable performance
+X1 <- varImp(model)
+X2 <- varImp(model2)
+
+plot(X1)
+plot(X2)
+                        
+```
+
+
+```{r pressure, echo=FALSE}
+
+#Hyperparameter tuning
+# set up tuning grid
+search_grid <- expand.grid(
+  usekernel = c(TRUE, FALSE),
+  fL = 1:5,
+  adjust = seq(0, 5, by = 1)
+)
+
+model3 = train(x,y,method='nb', tuneGrid=search_grid, trControl=trainControl(method='cv',number=10))
+model3
+
+#Top 5 models
+model2$results %>%
+  top_n(5, wt=Accuracy) %>%
+  arrange(desc(Accuracy))
+
+pred <-predict(model3, newdata=test)
+confusionMatrix(pred,test$Outcome, positive="Yes")
+
+```

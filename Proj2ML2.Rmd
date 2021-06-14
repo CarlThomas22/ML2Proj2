@@ -145,6 +145,10 @@ model2
 
 ```{r pressure, echo=FALSE}
 #5. MODEL EVALUATION
+
+#Checking for multicolienarity 
+vif(model)
+
 #Predict testing set
 Predict <- predict(model, newdata = test)
 
